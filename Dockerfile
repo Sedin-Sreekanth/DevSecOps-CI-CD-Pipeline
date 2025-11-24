@@ -13,16 +13,36 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+# =========================
 # Stage 1: Build
-FROM eclipse-temurin:21-jdk
+# =========================
+FROM eclipse-temurin:21-jdk AS builder
 
-COPY . /usr/src/myapp
+# Set working directory
 WORKDIR /usr/src/myapp
 
-# Make mvnw executable
+# Copy all project files
+COPY . .
+
+# Make Maven wrapper executable
 RUN chmod +x mvnw
 
-# Build the project
+# Build the project and skip license plugin (avoids Git error)
 RUN ./mvnw clean package -Dlicense.skip=true
 
-CMD ./mvnw cargo:run -P tomcat90
+# =========================
+# Stage 2: Runtime
+# =========================
+FROM eclipse-temurin:21-jdk
+
+# Set working directory
+WORKDIR /usr/src/myapp
+
+# Copy only the WAR from the builder stage
+COPY --from=builder /usr/src/myapp/target/*.war ./app.war
+
+# Expose port if needed
+EXPOSE 8080
+
+# Run the WAR
+CMD ["java", "-jar", "app.war"]
