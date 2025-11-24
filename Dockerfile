@@ -13,36 +13,31 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-# =========================
-# Stage 1: Build
-# =========================
-FROM eclipse-temurin:21-jdk AS builder
+# Use official Maven + JDK image
+FROM maven:3.9.5-eclipse-temurin-21 AS build
 
 # Set working directory
 WORKDIR /usr/src/myapp
 
-# Copy all project files
-COPY . .
+# Copy only pom.xml first to leverage Docker cache
+COPY DevOps-Project-33/DevSecOps-CI-CD-Pipeline/pom.xml ./
 
-# Make Maven wrapper executable
-RUN chmod +x mvnw
+# Copy source code
+COPY DevOps-Project-33/DevSecOps-CI-CD-Pipeline/src ./src
 
-# Build the project and skip license plugin (avoids Git error)
-RUN ./mvnw clean package -Dlicense.skip=true
+# Build the application (skip license plugin to avoid Git-related errors)
+RUN mvn clean package -DskipTests -Dlicense.skip=true
 
-# =========================
-# Stage 2: Runtime
-# =========================
+# Use a smaller JDK image to run the app
 FROM eclipse-temurin:21-jdk
 
-# Set working directory
 WORKDIR /usr/src/myapp
 
-# Copy only the WAR from the builder stage
-COPY --from=builder /usr/src/myapp/target/*.war ./app.war
+# Copy the built WAR/JAR from the build stage
+COPY --from=build /usr/src/myapp/target /usr/src/myapp/target
 
-# Expose port if needed
+# Expose port
 EXPOSE 8080
 
-# Run the WAR
-CMD ["java", "-jar", "app.war"]
+# Run the app (update to your command if WAR/Tomcat needed)
+CMD ["java", "-jar", "target/jpetstore.war"]
