@@ -12,7 +12,7 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-#
+
 # Use official Maven + JDK image
 FROM maven:3.9.5-eclipse-temurin-21 AS build
 
@@ -41,3 +41,4 @@ EXPOSE 8080
 
 # Run the app (update to your command if WAR/Tomcat needed)
 CMD ["java", "-jar", "target/jpetstore.war"]
+
