@@ -14,16 +14,15 @@
 #    limitations under the License.
 #
 # Stage 1: Build
-FROM maven:3.9.3-eclipse-temurin-21 AS builder
-WORKDIR /usr/src/myapp
-COPY . .
-RUN mvn clean package -Dlicense.skip=true
-
-# Stage 2: Runtime
 FROM eclipse-temurin:21-jdk
+
+COPY . /usr/src/myapp
 WORKDIR /usr/src/myapp
-COPY --from=builder /usr/src/myapp/target/*.war ./app.war
 
-# Run the WAR
-CMD ["java", "-jar", "app.war"]
+# Make mvnw executable
+RUN chmod +x mvnw
 
+# Build the project
+RUN ./mvnw clean package -Dlicense.skip=true
+
+CMD ./mvnw cargo:run -P tomcat90
