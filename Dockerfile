@@ -13,34 +13,33 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-# Use Maven + JDK 17 image for build
-FROM maven:3.9.3-eclipse-temurin-17 AS build
+# Use Maven + JDK 17 image
+FROM maven:3.9.2-eclipse-temurin-17 AS build
 
 # Set working directory
 WORKDIR /app
 
-# Copy pom.xml and source code
-COPY DevOps-Project-33/DevSecOps-CI-CD-Pipeline /app
+# Copy pom.xml and download dependencies first (cache)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Skip license plugin and tests during build
-RUN mvn clean install -DskipTests -Dlicense.skip=true
+# Copy the source code
+COPY . .
 
-# -------------------------------
-# Stage 2: Build lightweight runtime image
-# -------------------------------
-FROM eclipse-temurin:17-jre-alpine
+# Build the project (skip tests and license plugin)
+RUN mvn clean install -DskipTests=true -Dlicense.skip=true
+
+# Use a smaller JDK image for running the WAR
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# Copy WAR from build stage
-COPY --from=build /app/target/jpetstore.war /app/jpetstore.war
+# Copy the WAR from the build stage
+COPY --from=build /app/target/jpetstore.war .
 
 # Expose default Tomcat port
 EXPOSE 8080
 
-# Run WAR using embedded Tomcat (simplest way)
-RUN apk add --no-cache bash curl
-
-# Command to run WAR using Tomcat
-# You can replace with your preferred servlet container
-CMD ["sh", "-c", "echo 'Deploy WAR manually or run in your preferred container'"]
+# Command to run WAR in embedded Tomcat (or configure as needed)
+# If using standalone Tomcat in Docker, adjust this CMD
+CMD ["java", "-jar", "jpetstore.war"]
