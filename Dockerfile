@@ -13,18 +13,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-FROM eclipse-temurin:21-jdk
-
-# Install Maven
-RUN apt-get update && \
-    apt-get install -y maven && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY . /usr/src/myapp
+# Stage 1: Build
+FROM maven:3.9.3-eclipse-temurin-21 AS builder
 WORKDIR /usr/src/myapp
+COPY . .
+RUN mvn clean package -Dlicense.skip=true
 
-# Build the project
-RUN mvn clean package
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jdk
+WORKDIR /usr/src/myapp
+COPY --from=builder /usr/src/myapp/target/*.war ./app.war
 
-# Run the app
-CMD mvn cargo:run -P tomcat90
+# Run the WAR
+CMD ["java", "-jar", "app.war"]
+
